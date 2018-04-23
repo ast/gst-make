@@ -1,0 +1,10 @@
+# Backups
+*~
+
+# macOS
+.DS_Store
+
+# Python
+gst_make.egg-info/
+dist/
+__pycache__

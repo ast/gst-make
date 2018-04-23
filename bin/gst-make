@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+
+from gst_make import template_path, script_path
+import argparse
+import os
+import sys
+from sys import exit
+import subprocess
+
+def run_command(command, args):
+	script_name = "gst-make-{0}".format(command)
+	script_full_path = os.path.join(script_path(), script_name)
+	try:
+		subprocess.call([script_full_path]+args, stderr=sys.stderr, stdout=sys.stdout)
+	except FileNotFoundError as e:
+		print("{0} is not a gst-make command".format(command))
+
+def main():
+	parser = argparse.ArgumentParser(description='Create a gstreamer plugin project')
+	parser.add_argument("--template-path", help="print template path and exit", action='store_true')
+	parser.add_argument("--script-path", help="print script path and exit", action='store_true')
+	parser.add_argument("COMMAND", help="project|plugin|element|indent", type=str, nargs='?', default=None)
+	parser.add_argument('args', help="arguments to COMMAND", nargs=argparse.REMAINDER)
+
+	args = parser.parse_args()
+
+	if args.template_path:
+		print(template_path())
+	elif args.script_path:
+		print(script_path())
+	elif args.COMMAND:
+		run_command(args.COMMAND, args.args)
+	else:
+		parser.print_usage()
+
+
+if __name__ == '__main__':
+    main()

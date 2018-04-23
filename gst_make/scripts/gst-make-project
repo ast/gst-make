@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+
+set -e
+
+gst_project_template_path=$(gst-make --template-path)/project
+gst_replace_version="1.0.0"
+prefix=gst
+
+while [ "$1" ] ; do
+  case $1 in
+    --help)
+      cat <<-EOF
+Usage: gst-make project [OPTIONS] PROJECT_NAME
+Create an meson project based on GStreamer from a template.
+Options:
+  --help             Print this information
+  --prefix PREFIX    Use PREFIX instead of "gst"
+Example: 'gst-make project my_project' will create the project gst-my-project.
+EOF
+      exit 0
+      ;;
+    --prefix)
+      shift
+      prefix=$1
+      ;;
+    -*)
+      echo Unknown option: $1
+      exit 1
+      ;;
+    *)
+      if [ "$name" = "" ]; then
+        name=$1
+      else
+        echo Ignored: $1
+      fi
+  esac
+  shift
+done
+
+if [ "$name" = "" ] ; then
+  echo "Usage: gst-make project [OPTIONS] PROJECT_NAME"
+  exit 1
+fi
+
+# Format project prefix and name
+# camle_case transforms to camelCase.
+PREFIX=$(echo $prefix | sed -e 's/\(.*\)/\U\1/')
+NAME=$(echo $name | sed -e 's/\(.*\)/\U\1/')
+Prefix=$(echo $prefix | sed -e 's/_\(.\)/\U\1/g' -e 's/^\(.\)/\U\1/')
+Name=$(echo $name | sed -e 's/_\(.\)/\U\1/g' -e 's/^\(.\)/\U\1/')
+
+# Replace patterns
+GST_IS_REPLACE=${PREFIX}_IS_${NAME}
+GST_REPLACE=${PREFIX}_${NAME}
+GST_TYPE_REPLACE=${PREFIX}_TYPE_${NAME}
+GstReplace=${Prefix}${Name}
+gst_replace=${prefix}_${name}
+gst__replace=${prefix}-${name}
+gstreplace=${prefix}$(echo $name | sed -e 's/_//g')
+replace=$(echo $name | sed -e 's/_//g')
+
+# Project location
+gst_project_path=`pwd`/$gst__replace
+
+if [ -d $gst_project_path ]; then
+  echo "$gst__replace exists."
+  exit 1
+else
+  echo "creating $gst__replace"
+  cp -R $gst_project_template_path $gst_project_path
+fi
+
+# Search and replace name and version in meson.build
+sed	-i \
+-e "s/gst__replace/$gst__replace/g" \
+-e "s/gst_replace_version/$gst_replace_version/g" \
+   $gst_project_path/meson.build
+
+sed	-i \
+-e "s/GstReplace/$GstReplace/g" \
+   $gst_project_path/README.md
+
+# Project skeleton done, change to project directory
+if pushd > /dev/null $gst_project_path; then
+  # meson build
+  popd > /dev/null
+fi
+
+
+# Helpful message after creation
+cat <<-EOF
+created:
+  $gst__replace
+to build:
+  cd $gst__replace
+  meson build
+  ninja -C build
+EOF

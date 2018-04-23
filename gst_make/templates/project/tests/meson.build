@@ -1,0 +1,1 @@
+executable('gsttest', 'gsttest.c')

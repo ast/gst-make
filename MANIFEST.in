@@ -1,0 +1,3 @@
+include README.rst
+include gst_make/scripts/*
+recursive-include gst_make/templates *
