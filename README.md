@@ -25,7 +25,7 @@ pip3 install gst-make
 # create project
 cd
 gst-make project my_project
-cd gst-my_project
+cd gst-my-project
 
 # build with meson
 meson build
@@ -51,6 +51,21 @@ export GST_PLUGIN_PATH = $HOME/gst-my_project/build/gst/myplugin:$GST_PLUGIN_PAT
 ```
 
 
+### Using with Xcode
+
+If you are developing on a mac like me.
+
+```
+# Add the output of this command to "Other Linker Flags"
+pkg-config --libs gstreamer-1.0 gobject-2.0 gstreamer-audio-1.0 gstreamer-base-1.0
+
+```
+
+
+### Using with Visual Studio Code
+
+
+
 ### Prerequisites
 
 You will need:
@@ -69,8 +84,8 @@ You will need:
 ## Built With
 
 * [gstreamer](https://gstreamer.freedesktop.org/) - Best media framework in this galaxy.
-* [meson](http://mesonbuild.com/) - The Meson Build system
-* [ROME](https://rometools.github.io/rome/) - Used to generate RSS Feeds
+* [meson](http://mesonbuild.com/) - The Meson Build system.
+* [ninja](https://ninja-build.org/) - Ninja is a small build system with a focus on speed.
 
 ## Contributing
 
@@ -83,8 +98,6 @@ Still too early.
 ## Authors
 
 * **Albin Stigö** - *Initial work* - [ast](https://github.com/ast)
-
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
 
 ## License
 

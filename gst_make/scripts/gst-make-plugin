@@ -1,121 +1,39 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python3
 
-set -e
+import argparse
+from jinja2 import Environment, PackageLoader
+from gst_make import GstReplace
+import os
+from os import path
 
-prefix=gst
-gst_replace_version="1.0.0"
+def main():
+	parser = argparse.ArgumentParser(description='Create a gstreamer plugin')
+	parser.add_argument("--prefix", help="prefix, default 'gst'", type=str, default="gst")
+	parser.add_argument("name", help="plugin name", type=str)
+	args = parser.parse_args()
 
-while [ "$1" ] ; do
-  case $1 in
-    --help)
-      cat <<-EOF
-Usage: gst-make plugin [OPTIONS] PLUGIN_NAME
-EOF
-      exit 0
-      ;;
-    --prefix)
-      shift
-      prefix=$1
-      ;;
-    -*)
-      echo Unknown option: $1
-      exit 1
-      ;;
-    *)
-      if [ "$name" = "" ]; then
-        name=$1
-      else
-        echo Ignored: $1
-      fi
-  esac
-  shift
-done
+	# helper class to generate appropriate names
+	r = GstReplace(args.prefix, args.name)
+	# don't do anything if path exists
+	if path.exists(path.join(os.getcwd(), r.name)):
+		print("{} exists".format(r.name))
+		exit(1)
+	# create plugin directory
+	os.mkdir(r.name)
+	# setup template loader
+	env = Environment(
+	    loader = PackageLoader('gst_make', 'templates/plugin-jinja2'),
+	    trim_blocks=True,
+	    lstrip_blocks=True)
+	# templates
+	gstplugin_c_tmpl   = env.get_template('gstplugin.c')
+	meson_build_tmpl = env.get_template('meson.build')
+	# render to files
+	gstplugin_c_tmpl.stream(r=r).dump(path.join(r.name, "{}.c".format(r.gstreplace)))
+	meson_build_tmpl.stream(r=r).dump(path.join(r.name, "meson.build"))
 
-if [ "$name" = "" ] ; then
-  echo "Usage: gst-make plugin [OPTIONS] PLUGIN_NAME"
-  exit 1
-fi
+	print("# created {}".format(r.name))
+	print("echo 'subdir('{}')' >> meson.build".format(r.name))
 
-# Format project prefix and name
-# camle_case transforms to camelCase.
-PREFIX=$(echo $prefix | sed -e 's/\(.*\)/\U\1/')
-NAME=$(echo $name | sed -e 's/\(.*\)/\U\1/')
-Prefix=$(echo $prefix | sed -e 's/_\(.\)/\U\1/g' -e 's/^\(.\)/\U\1/')
-Name=$(echo $name | sed -e 's/_\(.\)/\U\1/g' -e 's/^\(.\)/\U\1/')
-
-# Replace patterns
-GST_IS_REPLACE=${PREFIX}_IS_${NAME}
-GST_REPLACE=${PREFIX}_${NAME}
-GST_TYPE_REPLACE=${PREFIX}_TYPE_${NAME}
-GstReplace=${Prefix}${Name}
-gst_replace=${prefix}_${name}
-gst__replace=${prefix}-${name}
-gstreplace=${prefix}$(echo $name | sed -e 's/_//g')
-replace=$(echo $name | sed -e 's/_//g')
-
-# paths
-gst_plugin_path=`pwd`/$name
-
-if [ ! -d $gst_plugin_path ]; then
-	rm -rf $gst_plugin_path
-	mkdir $gst_plugin_path
-else
-	echo "$name exists."
-	exit 1
-fi
-
-cat >$gst_plugin_path/meson.build <<EOF
-# add plugin specific dependencies here, example:
-# liquid_dep = cc.find_library('liquid', required : true)
-
-${gstreplace}_sources = ['${gstreplace}.c']
-
-$gstreplace = library('$gstreplace',
-  ${gstreplace}_sources,
-  c_args : gst_test_args,
-  include_directories : [configinc, libsinc],
-  dependencies : [gst_dep],
-  install : true,
-  install_dir : plugins_install_dir,
-)
-EOF
-
-cat >$gst_plugin_path/${gstreplace}.c <<EOF
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
-#include <gst/gst.h>
-
-static gboolean
-plugin_init (GstPlugin * plugin)
-{
-  return TRUE;
-}
-
-GST_PLUGIN_DEFINE (
-    GST_VERSION_MAJOR,
-    GST_VERSION_MINOR,
-    $replace,
-    "FIXME Template plugin",
-    plugin_init,
-    VERSION,
-    "LGPL", /* FIXME */
-    "GStreamer",
-    "http://gstreamer.net/"
-)
-EOF
-
-
-# Helpful message after creation
-cat <<-EOF
-created:
-  $name
-add:
-  subdir('$name')
-to meson.build
-
-to use plugin add
-  PROJECT_PATH/build/gst/$name
-to GST_PLUGIN_PATH
-EOF
+if __name__ == '__main__':
+    main()

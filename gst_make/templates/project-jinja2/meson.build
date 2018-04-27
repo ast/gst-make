@@ -1,19 +1,19 @@
-project('gst__replace', 'c',
-  version : 'gst_replace_version',
+project('{{r.gst_project_replace}}', 'c',
+  version : '{{version}}',
   meson_version : '>= 0.36.0',
   default_options : [ 'warning_level=1',
                       'buildtype=debugoptimized' ])
 
 gst_version = meson.project_version()
-version_arr = gst_version.split('.')
-gst_version_major = version_arr[0].to_int()
-gst_version_minor = version_arr[1].to_int()
-gst_version_micro = version_arr[2].to_int()
- if version_arr.length() == 4
-  gst_version_nano = version_arr[3].to_int()
-else
-  gst_version_nano = 0
-endif
+# version_arr = gst_version.split('.')
+# gst_version_major = version_arr[0].to_int()
+# gst_version_minor = version_arr[1].to_int()
+# gst_version_micro = version_arr[2].to_int()
+#  if version_arr.length() == 4
+#   gst_version_nano = version_arr[3].to_int()
+# else
+#   gst_version_nano = 0
+# endif
 
 have_cxx = add_languages('cpp', required : false)
 
@@ -122,8 +122,8 @@ cdata.set('HAVE_GCC_ASM', cc.get_id() != 'msvc')
 cdata.set('VERSION', '"@0@"'.format(gst_version))
 cdata.set('PACKAGE_VERSION', '"@0@"'.format(gst_version))
 cdata.set('GST_LICENSE', '"LGPL"')
-cdata.set('PACKAGE', '"gst__replace"')
-cdata.set('GETTEXT_PACKAGE', '"gst__replace"')
+cdata.set('PACKAGE', '"{{r.gst_project_replace}}"')
+cdata.set('GETTEXT_PACKAGE', '"{{r.gst_project_replace}}"')
 
 warning_flags = [
   '-Wmissing-declarations',

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from gst_make import template_path, script_path
+from gst_make import script_path
 import argparse
 import os
 import sys

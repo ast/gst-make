@@ -1,98 +1,56 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python3
 
-set -e
-
-gst_project_template_path=$(gst-make --template-path)/project
-gst_replace_version="1.0.0"
-prefix=gst
-
-while [ "$1" ] ; do
-  case $1 in
-    --help)
-      cat <<-EOF
-Usage: gst-make project [OPTIONS] PROJECT_NAME
-Create an meson project based on GStreamer from a template.
-Options:
-  --help             Print this information
-  --prefix PREFIX    Use PREFIX instead of "gst"
-Example: 'gst-make project my_project' will create the project gst-my-project.
-EOF
-      exit 0
-      ;;
-    --prefix)
-      shift
-      prefix=$1
-      ;;
-    -*)
-      echo Unknown option: $1
-      exit 1
-      ;;
-    *)
-      if [ "$name" = "" ]; then
-        name=$1
-      else
-        echo Ignored: $1
-      fi
-  esac
-  shift
-done
-
-if [ "$name" = "" ] ; then
-  echo "Usage: gst-make project [OPTIONS] PROJECT_NAME"
-  exit 1
-fi
-
-# Format project prefix and name
-# camle_case transforms to camelCase.
-PREFIX=$(echo $prefix | sed -e 's/\(.*\)/\U\1/')
-NAME=$(echo $name | sed -e 's/\(.*\)/\U\1/')
-Prefix=$(echo $prefix | sed -e 's/_\(.\)/\U\1/g' -e 's/^\(.\)/\U\1/')
-Name=$(echo $name | sed -e 's/_\(.\)/\U\1/g' -e 's/^\(.\)/\U\1/')
-
-# Replace patterns
-GST_IS_REPLACE=${PREFIX}_IS_${NAME}
-GST_REPLACE=${PREFIX}_${NAME}
-GST_TYPE_REPLACE=${PREFIX}_TYPE_${NAME}
-GstReplace=${Prefix}${Name}
-gst_replace=${prefix}_${name}
-gst__replace=${prefix}-${name}
-gstreplace=${prefix}$(echo $name | sed -e 's/_//g')
-replace=$(echo $name | sed -e 's/_//g')
-
-# Project location
-gst_project_path=`pwd`/$gst__replace
-
-if [ -d $gst_project_path ]; then
-  echo "$gst__replace exists."
-  exit 1
-else
-  echo "creating $gst__replace"
-  cp -R $gst_project_template_path $gst_project_path
-fi
-
-# Search and replace name and version in meson.build
-sed	-i \
--e "s/gst__replace/$gst__replace/g" \
--e "s/gst_replace_version/$gst_replace_version/g" \
-   $gst_project_path/meson.build
-
-sed	-i \
--e "s/GstReplace/$GstReplace/g" \
-   $gst_project_path/README.md
-
-# Project skeleton done, change to project directory
-if pushd > /dev/null $gst_project_path; then
-  # meson build
-  popd > /dev/null
-fi
+import argparse
+from jinja2 import Environment, PackageLoader
+from gst_make import GstReplace
+import os
+from os import path
+from sys import exit
 
 
-# Helpful message after creation
-cat <<-EOF
-created:
-  $gst__replace
-to build:
-  cd $gst__replace
-  meson build
-  ninja -C build
-EOF
+def main():
+	parser = argparse.ArgumentParser(description='Create meson based gstreamer project')
+	parser.add_argument("--prefix", help="prefix, default 'gst'", type=str, default="gst")
+	parser.add_argument("--version", help="version, default '0.0.1'", type=str, default="1.0.0")
+	parser.add_argument("name", help="project name", type=str)
+	args = parser.parse_args()
+
+	# helper class to generate appropriate names
+	r = GstReplace(args.prefix, args.name)
+	# don't do anything if path exists
+	if path.exists(path.join(os.getcwd(), r.gst_project_replace)):
+		print("{} exists".format(r.gst_project_replace))
+		exit(1)
+	# create projects directories
+	os.makedirs(path.join(r.gst_project_replace, "gst"))
+	os.makedirs(path.join(r.gst_project_replace, "gst-libs"))
+	os.makedirs(path.join(r.gst_project_replace, "tests"))
+	# setup template loader
+	env = Environment(
+	    loader = PackageLoader('gst_make', 'templates/project-jinja2'),
+	    trim_blocks=True,
+	    lstrip_blocks=True)
+	# root templates
+	gitignore_tmpl   = env.get_template('gitignore')
+	meson_build_tmpl = env.get_template('meson.build')
+	readme_md_tmpl      = env.get_template('README.md')
+	# gst/ templates
+	gst_meson_build_tmpl = env.get_template('gst/meson.build')
+	# tests/ templates
+	tests_gsttest_c_tmpl = env.get_template('tests/gsttest.c')
+	tests_meson_build_tmpl = env.get_template('tests/meson.build')
+
+	# root
+	meson_build_tmpl.stream(r=r, version=args.version).dump(path.join(r.gst_project_replace, "meson.build"))
+	gitignore_tmpl.stream().dump(path.join(r.gst_project_replace, ".gitignore"))
+	readme_md_tmpl.stream(r=r).dump(path.join(r.gst_project_replace, "README.md"))
+	# gst
+	gst_meson_build_tmpl.stream().dump(path.join(r.gst_project_replace, "gst", "meson.build"))
+	# tests
+	tests_gsttest_c_tmpl.stream().dump(path.join(r.gst_project_replace, "tests", "gsttest.c"))
+	tests_meson_build_tmpl.stream().dump(path.join(r.gst_project_replace, "tests", "meson.build"))
+	# done
+	print("created {}".format(r.gst_project_replace))
+
+if __name__ == '__main__':
+    main()
