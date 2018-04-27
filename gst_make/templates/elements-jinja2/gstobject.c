@@ -68,6 +68,9 @@ static void
 {{r.gst_replace}}_class_init ({{r.GstReplace}}Class * klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+
+  {% block declare_class %}{% endblock %}
+
   {% block class_init %}{% endblock %}
 
   gst_element_class_set_static_metadata (GST_ELEMENT_CLASS(klass),
@@ -85,7 +88,7 @@ static void
 
 
 static void
-{{r.gst_replace}}_init ({{r.GstReplace}} *replace)
+{{r.gst_replace}}_init ({{r.GstReplace}} *{{r.replace}})
 {
   {% block instance_init %}{% endblock %}
 }

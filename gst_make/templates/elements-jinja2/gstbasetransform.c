@@ -65,9 +65,11 @@ GST_STATIC_PAD_TEMPLATE ("sink",
     );
 {% endblock %}
 
-{% block class_init %}
+{% block declare_class %}
   GstBaseTransformClass *base_transform_class = GST_BASE_TRANSFORM_CLASS (klass);
+{% endblock %}
 
+{% block class_init %}
   gst_element_class_add_static_pad_template (GST_ELEMENT_CLASS(klass),
       &{{r.gst_replace}}_src_template);
 
